@@ -6,6 +6,65 @@ require_once 'includes/db.php';
 $db = new Database();
 $message = '';
 
+// Handle profile picture upload
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action']) && $_POST['action'] == 'upload_profile_pic') {
+    if (isset($_FILES['profile_pic']) && $_FILES['profile_pic']['error'] == 0) {
+        $allowed_types = ['image/jpeg', 'image/png', 'image/gif'];
+        $max_size = 5 * 1024 * 1024; // 5MB
+        
+        $file_type = $_FILES['profile_pic']['type'];
+        $file_size = $_FILES['profile_pic']['size'];
+        
+        if (!in_array($file_type, $allowed_types)) {
+            $message = '<div class="alert alert-danger">Only JPEG, PNG, and GIF images are allowed.</div>';
+        } elseif ($file_size > $max_size) {
+            $message = '<div class="alert alert-danger">File size must be less than 5MB.</div>';
+        } else {
+            $upload_dir = 'uploads/profile_pics/';
+            if (!is_dir($upload_dir)) {
+                mkdir($upload_dir, 0755, true);
+            }
+            
+            $file_extension = pathinfo($_FILES['profile_pic']['name'], PATHINFO_EXTENSION);
+            $new_filename = 'profile_' . $currentUser['id'] . '_' . time() . '.' . $file_extension;
+            $upload_path = $upload_dir . $new_filename;
+            
+            if (move_uploaded_file($_FILES['profile_pic']['tmp_name'], $upload_path)) {
+                // Delete old profile picture if exists
+                try {
+                    $db->query('SELECT profile_pic FROM users WHERE id = :id');
+                    $db->bind(':id', $currentUser['id']);
+                    $old_user = $db->single();
+                    if ($old_user && $old_user->profile_pic && file_exists($old_user->profile_pic)) {
+                        unlink($old_user->profile_pic);
+                    }
+                } catch (Exception $e) {
+                    // Column doesn't exist yet, skip cleanup
+                }
+                
+                // Update database
+                try {
+                    $db->query('UPDATE users SET profile_pic = :profile_pic WHERE id = :id');
+                    $db->bind(':profile_pic', $upload_path);
+                    $db->bind(':id', $currentUser['id']);
+                    
+                    if ($db->execute()) {
+                        $message = '<div class="alert alert-success">Profile picture updated successfully!</div>';
+                    } else {
+                        $message = '<div class="alert alert-danger">Error updating profile picture in database.</div>';
+                    }
+                } catch (Exception $e) {
+                    $message = '<div class="alert alert-danger">Database error: Profile picture column may not exist. Please run the database migration.</div>';
+                }
+            } else {
+                $message = '<div class="alert alert-danger">Error uploading file.</div>';
+            }
+        }
+    } else {
+        $message = '<div class="alert alert-danger">Please select a file to upload.</div>';
+    }
+}
+
 // Handle profile update
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action']) && $_POST['action'] == 'update_profile') {
     $username = trim($_POST['username']);
@@ -200,12 +259,24 @@ $user_info = $db->single();
             </div>
             <div class="card-body">
                 <div class="text-center mb-4">
-                    <div class="bg-primary rounded-circle d-inline-flex align-items-center justify-content-center" 
-                         style="width: 80px; height: 80px;">
-                        <i class="fas fa-user fa-2x text-white"></i>
-                    </div>
+                    <?php if (!empty($user_info->profile_pic) && file_exists($user_info->profile_pic)): ?>
+                        <img src="<?php echo htmlspecialchars($user_info->profile_pic); ?>" 
+                             alt="Profile Picture" 
+                             class="rounded-circle profile-pic" 
+                             style="width: 80px; height: 80px; object-fit: cover;">
+                    <?php else: ?>
+                        <div class="bg-primary rounded-circle d-inline-flex align-items-center justify-content-center" 
+                             style="width: 80px; height: 80px;">
+                            <i class="fas fa-user fa-2x text-white"></i>
+                        </div>
+                    <?php endif; ?>
                     <h5 class="mt-3 mb-1"><?php echo htmlspecialchars($currentUser['username']); ?></h5>
                     <p class="text-muted"><?php echo htmlspecialchars($currentUser['email']); ?></p>
+                    
+                    <!-- Profile Picture Upload -->
+                    <button class="btn btn-sm btn-outline-primary" onclick="showModal('profilePicModal')">
+                        <i class="fas fa-camera"></i> Change Photo
+                    </button>
                 </div>
                 
                 <div class="row text-center">
@@ -287,6 +358,94 @@ document.getElementById('new_password').addEventListener('input', function() {
         document.getElementById('current_password').value = '';
         document.getElementById('confirm_password').value = '';
     }
+});
+</script>
+
+<!-- Profile Picture Upload Modal -->
+<div class="modal" id="profilePicModal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-camera text-primary"></i>
+                    Change Profile Picture
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" action="" enctype="multipart/form-data">
+                <div class="modal-body">
+                    <input type="hidden" name="action" value="upload_profile_pic">
+                    
+                    <div class="form-group">
+                        <label for="profile_pic" class="form-label">Select Image</label>
+                        <input type="file" class="form-control" id="profile_pic" name="profile_pic" 
+                               accept="image/jpeg,image/png,image/gif" required>
+                        <small class="form-text text-muted">
+                            Allowed formats: JPEG, PNG, GIF. Maximum size: 5MB.
+                        </small>
+                    </div>
+                    
+                    <!-- Image Preview -->
+                    <div class="mt-3 text-center d-none" id="imagePreview">
+                        <img src="" alt="Preview" style="max-width: 200px; max-height: 200px;">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-upload"></i> Upload Photo
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Show modal function
+function showModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.style.display = 'block';
+        document.body.style.overflow = 'hidden';
+    }
+}
+
+// Image preview
+document.getElementById('profile_pic').addEventListener('change', function(e) {
+    const preview = document.getElementById('imagePreview');
+    const file = e.target.files[0];
+    
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            preview.querySelector('img').src = e.target.result;
+            preview.classList.remove('d-none');
+        }
+        reader.readAsDataURL(file);
+    } else {
+        preview.classList.add('d-none');
+    }
+});
+
+// Close modal when clicking close button or outside
+document.querySelectorAll('.modal .btn-close, .modal .btn-secondary').forEach(button => {
+    button.addEventListener('click', function() {
+        const modal = this.closest('.modal');
+        if (modal) {
+            modal.style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+    });
+});
+
+document.querySelectorAll('.modal').forEach(modal => {
+    modal.addEventListener('click', function(e) {
+        if (e.target === this) {
+            this.style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+    });
 });
 </script>
 

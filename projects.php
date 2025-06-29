@@ -218,4 +218,56 @@ $projects = $db->resultset();
     </div>
 </div>
 
+<!-- Edit Project Modal -->
+<div class="modal" id="editProjectModal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-edit text-primary"></i>
+                    Edit Project
+                </h5>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <form id="editProjectForm">
+                <div class="modal-body">
+                    <input type="hidden" id="edit_project_id" name="project_id">
+                    
+                    <div class="form-group">
+                        <label for="edit_project_title" class="form-label">Project Title *</label>
+                        <input type="text" class="form-control" id="edit_project_title" name="title" required 
+                               placeholder="Enter project title">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="edit_project_description" class="form-label">Description</label>
+                        <textarea class="form-control" id="edit_project_description" name="description" rows="4" 
+                                  placeholder="Describe your project..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Update Project
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Edit project function for modal
+function editProject(projectId, title, description) {
+    // Populate edit form
+    document.getElementById('edit_project_id').value = projectId;
+    document.getElementById('edit_project_title').value = title;
+    document.getElementById('edit_project_description').value = description;
+    
+    // Show modal
+    document.getElementById('editProjectModal').style.display = 'block';
+    document.body.style.overflow = 'hidden';
+}
+</script>
+
 <?php require_once 'components/footer.php'; ?>
