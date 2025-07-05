@@ -108,8 +108,8 @@ if (!$auth->isLoggedIn()) {
                     <input type="text" class="form-control" placeholder="Search..." id="searchInput">
                 </div>
                 <div class="dropdown">
-                    <button class="btn btn-link dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                        <i class="fas fa-user-circle"></i>
+                    <button class="btn btn-link dropdown-toggle d-flex align-items-center" type="button" data-bs-toggle="dropdown">
+                        <?php echo $auth->getCurrentUserAvatar(32, 'me-2'); ?>
                         <?php echo htmlspecialchars($currentUser['username']); ?>
                     </button>
                     <ul class="dropdown-menu">

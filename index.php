@@ -197,30 +197,64 @@ $recent_tasks = $db->resultset();
     <div class="card-body">
         <div class="row">
             <div class="col-md-3 mb-3">
-                <a href="projects.php" class="btn btn-outline-primary w-100">
-                    <i class="fas fa-plus-circle"></i><br>
-                    <small>New Project</small>
-                </a>
+                <div class="text-center">
+                    <?php if ($auth->hasPermission('create_project')): ?>
+                        <a href="projects.php" class="btn btn-outline-primary w-100">
+                            <i class="fas fa-plus-circle"></i><br>
+                            <small>New Project</small>
+                        </a>
+                    <?php else: ?>
+                        <button class="btn btn-outline-secondary w-100" disabled title="Owner access required">
+                            <i class="fas fa-plus-circle"></i><br>
+                            <small>New Project</small>
+                        </button>
+                        <small class="text-muted d-block mt-2">Owner access required</small>
+                    <?php endif; ?>
+                </div>
             </div>
+            
             <div class="col-md-3 mb-3">
-                <a href="tasks.php" class="btn btn-outline-success w-100">
-                    <i class="fas fa-plus"></i><br>
-                    <small>New Task</small>
-                </a>
+                <div class="text-center">
+                    <a href="tasks.php" class="btn btn-outline-success w-100">
+                        <i class="fas fa-plus"></i><br>
+                        <small>New Task</small>
+                    </a>
+                </div>
             </div>
+            
             <div class="col-md-3 mb-3">
-                <a href="team.php" class="btn btn-outline-info w-100">
-                    <i class="fas fa-user-plus"></i><br>
-                    <small>Invite Team</small>
-                </a>
+                <div class="text-center">
+                    <?php if ($auth->hasPermission('invite_team')): ?>
+                        <a href="team.php" class="btn btn-outline-info w-100">
+                            <i class="fas fa-user-plus"></i><br>
+                            <small>Invite Team</small>
+                        </a>
+                    <?php else: ?>
+                        <button class="btn btn-outline-secondary w-100" disabled title="Owner access required">
+                            <i class="fas fa-user-plus"></i><br>
+                            <small>Invite Team</small>
+                        </button>
+                        <small class="text-muted d-block mt-2">Owner access required</small>
+                    <?php endif; ?>
+                </div>
             </div>
+            
             <div class="col-md-3 mb-3">
-                <a href="reports.php" class="btn btn-outline-warning w-100">
-                    <i class="fas fa-chart-bar"></i><br>
-                    <small>View Reports</small>
-                </a>
+                <div class="text-center">
+                    <a href="reports.php" class="btn btn-outline-warning w-100">
+                        <i class="fas fa-chart-bar"></i><br>
+                        <small>View Reports</small>
+                    </a>
+                </div>
             </div>
         </div>
+        
+        <?php if ($auth->isCurrentUserMember()): ?>
+        <div class="alert alert-info mt-3">
+            <i class="fas fa-info-circle"></i>
+            <strong>Member Access:</strong> Some features require owner permissions. Create your first project to become an owner and unlock all features.
+        </div>
+        <?php endif; ?>
     </div>
 </div>
 

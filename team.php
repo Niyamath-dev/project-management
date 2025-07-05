@@ -188,11 +188,15 @@ foreach ($team_members as $member) {
                             <?php foreach ($members as $member): ?>
                                 <tr>
                                     <td>
-                                        <i class="fas fa-user-circle text-muted me-2"></i>
-                                        <?php echo htmlspecialchars($member->username); ?>
-                                        <?php if ($member->user_id == $currentUser['id']): ?>
-                                            <span class="badge bg-info ms-1">You</span>
-                                        <?php endif; ?>
+                                        <div class="d-flex align-items-center">
+                                            <?php echo $auth->getUserAvatar($member->user_id, $member->username, 32, 'me-2'); ?>
+                                            <div>
+                                                <?php echo htmlspecialchars($member->username); ?>
+                                                <?php if ($member->user_id == $currentUser['id']): ?>
+                                                    <span class="badge bg-info ms-1">You</span>
+                                                <?php endif; ?>
+                                            </div>
+                                        </div>
                                     </td>
                                     <td><?php echo htmlspecialchars($member->email); ?></td>
                                     <td>

@@ -123,5 +123,103 @@ class Auth {
     public function isCurrentUserAdmin() {
         return $this->isLoggedIn() && $_SESSION['user_role'] === 'admin';
     }
+
+    // Check if current user is a regular member (not admin and doesn't own projects)
+    public function isCurrentUserMember() {
+        return $this->isLoggedIn() && 
+               ($_SESSION['user_role'] !== 'admin') && 
+               !$this->isCurrentUserProjectOwner();
+    }
+
+    // Check if user has permission for specific action
+    public function hasPermission($action) {
+        if (!$this->isLoggedIn()) {
+            return false;
+        }
+
+        // System admins have all permissions
+        if ($this->isCurrentUserAdmin()) {
+            return true;
+        }
+
+        // Check if user owns any projects (project owners get full access)
+        $this->db->query('SELECT COUNT(*) as count FROM projects WHERE created_by = :user_id');
+        $this->db->bind(':user_id', $_SESSION['user_id']);
+        $result = $this->db->single();
+        $isProjectOwner = $result && $result->count > 0;
+
+        // Project owners have full access (except system admin functions)
+        if ($isProjectOwner) {
+            $adminOnlyActions = ['manage_users'];
+            return !in_array($action, $adminOnlyActions);
+        }
+
+        // Regular members (users who don't own projects) have restricted access
+        $restrictedActions = [
+            'create_project',
+            'invite_team',
+            'view_all_reports',
+            'manage_users'
+        ];
+
+        // Members cannot perform restricted actions
+        if (in_array($action, $restrictedActions)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    // Check if current user is a project owner
+    public function isCurrentUserProjectOwner() {
+        if (!$this->isLoggedIn()) {
+            return false;
+        }
+
+        $this->db->query('SELECT COUNT(*) as count FROM projects WHERE created_by = :user_id');
+        $this->db->bind(':user_id', $_SESSION['user_id']);
+        $result = $this->db->single();
+        return $result && $result->count > 0;
+    }
+
+    // Get user avatar HTML
+    public function getUserAvatar($userId, $username = null, $size = 40, $classes = '') {
+        $this->db->query('SELECT profile_pic, username FROM users WHERE id = :id');
+        $this->db->bind(':id', $userId);
+        $user = $this->db->single();
+        
+        if (!$user) {
+            return $this->getDefaultAvatar($username ?: 'User', $size, $classes);
+        }
+        
+        $displayName = $username ?: $user->username;
+        
+        if (!empty($user->profile_pic) && file_exists($user->profile_pic)) {
+            return '<img src="' . htmlspecialchars($user->profile_pic) . '" 
+                         alt="' . htmlspecialchars($displayName) . '" 
+                         class="rounded-circle ' . $classes . '" 
+                         style="width: ' . $size . 'px; height: ' . $size . 'px; object-fit: cover;">';
+        } else {
+            return $this->getDefaultAvatar($displayName, $size, $classes);
+        }
+    }
+
+    // Get default avatar (initials)
+    public function getDefaultAvatar($username, $size = 40, $classes = '') {
+        $initials = strtoupper(substr($username, 0, 2));
+        return '<div class="bg-primary rounded-circle d-inline-flex align-items-center justify-content-center ' . $classes . '" 
+                     style="width: ' . $size . 'px; height: ' . $size . 'px; font-size: ' . ($size * 0.4) . 'px; color: white;">
+                    ' . $initials . '
+                </div>';
+    }
+
+    // Get current user avatar
+    public function getCurrentUserAvatar($size = 40, $classes = '') {
+        if (!$this->isLoggedIn()) {
+            return $this->getDefaultAvatar('User', $size, $classes);
+        }
+        
+        return $this->getUserAvatar($_SESSION['user_id'], $_SESSION['username'], $size, $classes);
+    }
 }
 ?>

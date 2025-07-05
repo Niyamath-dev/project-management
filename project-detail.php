@@ -324,8 +324,8 @@ $progress = $project->task_count > 0 ? ($project->completed_tasks / $project->ta
                             <div class="col-md-6 col-lg-4 mb-3">
                                 <div class="card">
                                     <div class="card-body text-center">
-                                        <div class="avatar-circle bg-primary text-white mb-3 mx-auto">
-                                            <?php echo strtoupper(substr($member->username, 0, 2)); ?>
+                                        <div class="mb-3 d-flex justify-content-center">
+                                            <?php echo $auth->getUserAvatar($member->user_id, $member->username, 50); ?>
                                         </div>
                                         <h6 class="card-title"><?php echo htmlspecialchars($member->username); ?></h6>
                                         <p class="card-text text-muted small"><?php echo htmlspecialchars($member->email); ?></p>
